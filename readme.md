@@ -50,5 +50,23 @@ standard or not.
 As a first pass, I pass the SQR program through this converter.
 Then I manually go through the PL/SQL code to clean it up.
 
+# Tools
+Included is a program that will convert `print` statements in
+SQR to statements in PL/SQL. You'll need to modify the source
+code for `print.py` in order to modify the template strings,
+`put` and `putline`. The program uses these templates,
+replacing `{}` with a string. For example:
+
+```
+put = "utl_file.put(my_file, {});\n"
+putline = "utl_file.put_line(my_file, {});\n"
+```
+`put` is a template for placing a string without appending a
+newline. `putline` is a template for placing a string and then
+appending a newline.
+
+`print.py` takes the same inputs as `convert.py`. It is by no
+means perfect, and may be buggy, but it is quite helpful. 
+
 # LEGAL
 [License](LICENSE.md)
