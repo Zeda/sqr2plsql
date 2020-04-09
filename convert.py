@@ -17,7 +17,7 @@ selectvars_type = []
 
 sep = '''
 
-------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 '''
 
 head = """set scan off
@@ -416,13 +416,20 @@ def r2l(s):
 k = 1
 while k<len(sys.argv):
 	fin = sys.argv[k]
-	fout = sys.argv[k+1]
 	f = open(fin, 'r')
 	s = f.read()
 	f.close()
-	print("{} ==> {}".format(fin,fout))
-	s = r2l(s).replace('pkz_name', fout.replace('/','\\').split('\\')[-1].split('.')[0])
-	f = open(fout,'w')
-	f.write(s)
-	f.close()
+
+	s = r2l(s)
+
+	if k+1 < len(sys.argv):
+		fout = sys.argv[k+1]
+		s = s.replace('pkz_name', fout.replace('/','\\').split('\\')[-1].split('.')[0])
+		print("{} ==> {}".format(fin,fout))
+		f = open(fout,'w')
+		f.write(s)
+		f.close()
+	else:
+		print(s)
+
 	k += 2
