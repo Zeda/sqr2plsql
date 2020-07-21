@@ -43,6 +43,15 @@ show errors
 grant execute on pkz_name to public;
 """
 
+sqrkeywords = [
+			'print ',
+			'display ',
+			'add ',
+			'let ',
+			'move ',
+			'do ',
+			'if ']
+
 # We'll save this regex for later :)
 writepad = re.compile(':\\d+$')
 # prntloc = re.compile('\([\+\-]*\d*\,*\d+\,\d+\)')
@@ -103,22 +112,29 @@ def col_dealias(s):
 			k += 1
 	indent = s[0:k]
 	s = s.strip().rstrip(',').rstrip()
-	s = ' '+s.strip();
-# now work backwards in s until a space or a tab is encountered
+
+	if s.startswith('from'):
+		return ('', '', '', False)
+
+	for i in sqrkeywords:
+		if s.startswith(i):
+			return ('','','',False)
+
+	s = '__col_'+s.strip();
+# now work backwards in s until an '&' is encountered
 	k = len(s) - 1
-	while s[k] not in [' ', '\t']:
+	while not s.startswith('__col_', k):
 		k -= 1
 
 	if k == 0:
 		# then we don't have an alias!
-		col = s[1:]
-		alias = 'col_'+col
-		#print('No alias for {}! Assiging col_{}.'.format(col,col))
+		col = s[6:]
+		alias = 'col_' + col
 	else:
-		col = s[1:k]
-		alias = s[k+1:]
+		col = s[6:k]
+		alias = s[k:]
 
-	return (indent, col.strip(), alias.strip())
+	return (indent, col.strip(), alias.strip(), True)
 
 def r2lvar_rename(s):
 	t = ''
@@ -323,28 +339,46 @@ def r2l(s):
 		else:
 			# here we are in a select statement that we have to parse
 			# Note! This doesn't handle comments or trailing whitespace!
+
 			curse = ''
 			while i == '':
 				k += 1
 				i = s[k]
-
-			while i[-1] == ',' or not (i.strip().startswith('do') or i.strip().startswith('if') or i.strip().startswith('let') or i.strip().startswith('from')):
-				# print("{}  {}".format(k,i))
+			cont_loop = True
+			prev_col = ''
+			prev_alias = ''
+			prev_indent = ''
+			while cont_loop:
 				# read backwards to determine the output name, if any
+				i = i.split('!')[0]
 				if i.strip()!='':
-					(indent, col, alias) = col_dealias(i)
-					curse += "\t\t{}{}\t\t{},\n".format(indent, col, alias)
-					selectvars += [alias]
-					selectvars_i += [index]
-					selectvars_type += [col]
-					k += 1
-					i = s[k]
-					while i == '':
-						k += 1
-						i = s[k]
+					(indent, col, alias, cont_loop) = col_dealias(i)
+					if cont_loop:
+						if col == '':
+							prev_alias = alias
+						if prev_col != '':
+							curse += "\t\t{}{}\t\t{},\n".format(prev_indent, prev_col, prev_alias)
+							selectvars += [prev_alias]
+							selectvars_i += [index]
+							selectvars_type += [prev_col]
+							k += 1
+							i = s[k]
+							while i == '':
+								k += 1
+								i = s[k]
+						prev_col = col
+						prev_alias = alias
+						prev_indent = indent
 				else:
 					k += 1
 					i = s[k]
+
+			if prev_col != '':
+				curse += "\t\t{}{}\t\t{},\n".format(prev_indent, prev_col, prev_alias)
+				selectvars += [prev_alias]
+				selectvars_i += [index]
+				selectvars_type += [prev_col]
+
 			curse = curse.rstrip(',\n \t') + '\n'
 			work = ''
 			while not i.strip().startswith("from"):
@@ -400,8 +434,9 @@ def r2l(s):
 	while k<len(selectvars):
 		var = selectvars[k]
 		typ = selectvars_type[k]
-		vars += "	{}		{}.{}%TYPE;\n".format(var, typ.split('_')[0], typ)
-		out = out.replace(var, "i{}.{}".format(selectvars_i[k],var))
+		if '__' + var in out:
+			vars += "	{}		{}.{}%TYPE;\n".format(var, typ.split('_')[0], typ)
+		out = out.replace('__' + var, "i{}.{}".format(selectvars_i[k],var))
 		k += 1
 
 	defs = ''
