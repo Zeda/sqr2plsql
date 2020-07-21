@@ -245,7 +245,7 @@ def r2lline(s):
 		return ';'
 	elif s.startswith('open '):
 		s = s[5:].split(' as ')
-		return "{}file_{} := UTL_FILE.FOPEN('{}',{},'w');".format(indent,s[1].split(' ')[0],'CF_DIR',s[0])
+		return "{}file_{} := UTL_FILE.FOPEN('{}', {}, 'w');".format(indent,s[1].split(' ')[0],'FILE_DIR',s[0])
 
 
 	return indent+s
@@ -291,7 +291,24 @@ def low(s):
 		k += 1
 	return t
 
+
 def r2l(s):
+	def r2l_write():
+		nonlocal i, s, k
+		i = i.strip()
+		idx = i.lower().index('from')
+		out = '\tutl_file.put_line(file_{},'.format(i[6:idx].strip())
+		out += r2lwrite(i[idx + 4:])
+		while s[k+1].strip() == '':
+			k += 1
+
+		i = s[k+1].strip()
+		while i.startswith("'") or i.startswith('__num_') or i.startswith('__col_') or i.startswith('__var_'):
+			out += ' ||\n\t\t\t'
+			k += 1
+			out += r2lwrite(s[k])
+			i = s[k+1].strip()
+		return out + ');\n'
 	global stack, selectvars_type
 
 	stack = []
@@ -303,7 +320,6 @@ def r2l(s):
 
 	index = 0
 	s = low(s)
-	s = s.replace('/banner/gurjobs/PROD/cf','$CF')
 	out = ''
 	s = s.split('\n')
 	k = 0
@@ -316,21 +332,8 @@ def r2l(s):
 
 	while k<len(s):
 		i = s[k]
-		if i.strip().startswith('write '):
-			out += '\tutl_file.put_line(file_{},'.format(i[6])
-			out += r2lwrite(i[13:])
-
-			while s[k+1].strip() == '':
-				k += 1
-
-			i = s[k+1].strip()
-			while i.startswith("'") or i.startswith('__num_') or i.startswith('__col_') or i.startswith('__var_'):
-				out += ' ||\n\t\t\t'
-				k += 1
-				out += r2lwrite(s[k])
-				i = s[k+1].strip()
-			out += ');\n'
-
+		if i.strip().startswith('write'):
+			out += r2l_write()
 			# first line is after i[13]
 		if len(stack) == 0:
 			out += r2lline(r2lvar_rename(i)) + '\n'
@@ -382,7 +385,10 @@ def r2l(s):
 			curse = curse.rstrip(',\n \t') + '\n'
 			work = ''
 			while not i.strip().startswith("from"):
-				work += r2lline(i) + '\n'
+				if i.strip().startswith('write'):
+					work += r2l_write()
+				else:
+					work += r2lline(i) + '\n'
 				k += 1
 				i = s[k]
 			logic = ''
