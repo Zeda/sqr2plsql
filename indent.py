@@ -80,11 +80,17 @@ def indenter(s):
             out += i
             levl = 0
         elif i.lower().startswith('create or replace package body '):
-            stack += [i.lower()[31:].split('(')[0].strip(' is')]
+            if i.lower().endswith(' is'):
+                stack += [i.lower()[31:].split('(')[0][0:-3]]
+            else:
+                stack += [i.lower()[31:].split('(')[0]]
             out += i
             levl += 1
         elif i.lower().startswith('create or replace package '):
-            stack += [i.lower()[26:].split('(')[0].strip(' is')]
+            if i.lower().endswith(' is'):
+                stack += [i.lower()[26:].split('(')[0][0:-3]]
+            else:
+                stack += [i.lower()[26:].split('(')[0]]
             out += i
             levl += 1
         else:
