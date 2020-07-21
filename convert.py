@@ -228,8 +228,8 @@ def r2lline(s):
 		return indent+s+' THEN'
 	elif s == 'end-while':
 		return indent+'END LOOP;'
-	elif s == 'end-if':
-		return indent+'END IF;'
+	elif s.startswith('end-if'):
+		return indent+'END IF;'+s[6:]
 	elif s.startswith('begin-select'):
 		stack += [s[6:].upper(),True]
 		return ''
