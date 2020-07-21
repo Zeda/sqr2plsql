@@ -197,7 +197,7 @@ def r2lline(s):
 		return ''
 	elif s.startswith('begin-heading'):
 		stack += ['P_PrintHeading']
-		return sep+"PROCEDURE P_PrintHeading"
+		return sep+"PROCEDURE P_PrintHeading IS\nBEGIN"
 	elif s == 'end-heading':
 		return "END P_PrintHeading;"
 	elif s.startswith('begin-procedure'):
@@ -331,14 +331,18 @@ def r2l(s):
 			while i[-1] == ',' or not (i.strip().startswith('do') or i.strip().startswith('if') or i.strip().startswith('let') or i.strip().startswith('from')):
 				# print("{}  {}".format(k,i))
 				# read backwards to determine the output name, if any
-				(indent, col, alias) = col_dealias(i)
-				curse += "\t\t{}{}\t\t{},\n".format(indent, col, alias)
-				selectvars += [alias]
-				selectvars_i += [index]
-				selectvars_type += [col]
-				k += 1
-				i = s[k]
-				while i == '':
+				if i.strip()!='':
+					(indent, col, alias) = col_dealias(i)
+					curse += "\t\t{}{}\t\t{},\n".format(indent, col, alias)
+					selectvars += [alias]
+					selectvars_i += [index]
+					selectvars_type += [col]
+					k += 1
+					i = s[k]
+					while i == '':
+						k += 1
+						i = s[k]
+				else:
 					k += 1
 					i = s[k]
 			curse = curse.rstrip(',\n \t') + '\n'
