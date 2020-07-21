@@ -369,6 +369,9 @@ def r2l(s):
 							while i == '':
 								k += 1
 								i = s[k]
+						else:
+							k += 1
+							i = s[k]
 						prev_col = col
 						prev_alias = alias
 						prev_indent = indent
@@ -383,6 +386,7 @@ def r2l(s):
 				selectvars_type += [prev_col]
 
 			curse = curse.rstrip(',\n \t') + '\n'
+
 			work = ''
 			while not i.strip().startswith("from"):
 				if i.strip().startswith('write'):
