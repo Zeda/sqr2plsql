@@ -28,7 +28,7 @@ def indenter(s):
             out += i
         elif i.lower().startswith('if '):
             if out[-6:].strip() == 'ELSE':
-                out = out[0:-3] + "IF {}".format(i[3:])
+                out = out[0:-2] + "IF {}".format(i[3:])
                 collapsed += 1
             else:
                 stack += ['if']
