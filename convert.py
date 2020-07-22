@@ -163,7 +163,7 @@ def r2lline(s):
 	while s[k] in [' ','\t']:
 			k += 1
 	indent = s[0:k]
-	s = s.strip();
+	s = s.strip()
 	if s.startswith('let '):
 		s = s[4:].split('=')
 		t = ''
@@ -407,7 +407,7 @@ def r2l(s):
 			stack.pop()
 			if work != '':
 				cname = "Cursor{}".format(curse_cnt)
-				cursors += "{}CURSOR {} IS\n\t{}\n{}{};".format(sep, cname, stack.pop(), curse, logic)
+				cursors += "{}CURSOR {} IS\n\t{}\n{}{};\n".format(sep, cname, stack.pop(), curse, logic)
 				curse_cnt += 1
 				out += 'FOR i{} IN {} LOOP\n\t{}\nEND LOOP;\n'.format(index,cname,work.strip())
 				index+=1
