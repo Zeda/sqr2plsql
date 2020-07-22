@@ -13,6 +13,7 @@ def indenter(s):
     comment = False
     collapsed = 0
     stack = ['-']
+    sql_query = 0
     for i in s.split('\n'):
         i = i.strip()
         if comment:
@@ -34,8 +35,12 @@ def indenter(s):
                 stack += ['if']
                 out += "{}IF {}".format(indent*levl+halfindent*half, i[3:])
                 levl += 1
-        elif i.lower() == 'else':
-            out += "{}ELSE".format(indent*(levl-1)+halfindent*half)
+        elif i.lower()[0:5].strip() == 'else':
+            out += "{}ELSE{}".format(indent*(levl-1)+halfindent*half, i[4:])
+        elif i.lower().startswith('into'):
+            out += "{}INTO{}".format(indent*(levl-1)+halfindent*half, i[4:])
+        elif i.lower().startswith('values'):
+            out += "{}VALUES{}".format(indent*(levl-1)+halfindent*half, i[6:])
         elif i.lower().startswith('elsif '):
             out += "{}ELSIF {}".format(indent*(levl-1)+halfindent*half, i[6:])
         elif i.lower().startswith('end '):
@@ -58,9 +63,17 @@ def indenter(s):
             stack += ['loop']
             out += "{}FOR {}".format(indent*levl+halfindent*half, i[4:])
             levl += 1
-        elif i.lower().startswith('select ') or i.lower() == 'select':
+        elif i.lower().startswith('select ') or i.lower().startswith('update ') or i.lower().startswith('insert into ') or i.lower().startswith('delete ') or i.lower() in ('select', 'update', 'insert into', 'delete'):
             out += "{}{}".format(indent*levl+halfindent*half, i)
             levl += 1
+            sql_query += 1
+        elif '(select' in i.lower():
+            n = int((i.lower().index('(select') + 15)/ tabsize)
+            out += "{}{}".format(indent*levl+halfindent*half, i)
+            levl += n
+            sql_query += n
+        elif (i.lower().startswith('and ') or i.lower() == 'and') and sql_query > 0:
+            out += "{}  {}".format(indent*(levl-1)+halfindent*half, i)
         elif i.lower().startswith('from '):
             out += "{}{}".format(indent*(levl-1)+halfindent*half, i)
         elif i.lower().startswith('where '):
@@ -96,6 +109,9 @@ def indenter(s):
         else:
             out += "{}{}".format(indent*levl+halfindent*half, i)
         out += '\n'
+        if sql_query > 0 and i.split('--')[0].strip().endswith(';'):
+            levl -= sql_query
+            sql_query = 0
     return out
 
 k = 1
