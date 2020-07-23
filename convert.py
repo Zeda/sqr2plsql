@@ -122,7 +122,7 @@ def col_dealias(s):
 
 	s = '__col_'+s.strip();
 # now work backwards in s until an '&' is encountered
-	k = len(s) - 1
+	k = len(s) - 6
 	while not s.startswith('__col_', k):
 		k -= 1
 
@@ -132,7 +132,7 @@ def col_dealias(s):
 		alias = 'col_' + col
 	else:
 		col = s[6:k]
-		alias = s[k:]
+		alias = s[k+2:]
 
 	return (indent, col.strip(), alias.strip(), True)
 
@@ -178,7 +178,7 @@ def r2lline(s):
 		if comment != '':
 			comment = ' ' + comment
 
-		return "{}{} := {};{}".format(indent,s[0],t[0],comment)
+		return "{}{}:={};{}".format(indent,s[0],t[0],comment)
 
 	elif s.startswith('input '):
 		return indent+'&'+s[6:]
@@ -360,7 +360,10 @@ def r2l(s):
 						if col == '':
 							prev_alias = alias
 						if prev_col != '':
-							curse += "\t\t{}{}\t\t{},\n".format(prev_indent, prev_col, prev_alias)
+							if prev_alias == 'col_' + prev_col:
+								curse += "\t\t{}{},\n".format(prev_indent, prev_col)
+							else:
+								curse += "\t\t{}{}\t\t{},\n".format(prev_indent, prev_col, prev_alias[4:])
 							selectvars += [prev_alias]
 							selectvars_i += [index]
 							selectvars_type += [prev_col]
@@ -380,7 +383,10 @@ def r2l(s):
 					i = s[k]
 
 			if prev_col != '':
-				curse += "\t\t{}{}\t\t{},\n".format(prev_indent, prev_col, prev_alias)
+				if prev_alias == 'col_' + prev_col:
+					curse += "\t\t{}{},\n".format(prev_indent, prev_col)
+				else:
+					curse += "\t\t{}{}\t\t{},\n".format(prev_indent, prev_col, prev_alias[4:])
 				selectvars += [prev_alias]
 				selectvars_i += [index]
 				selectvars_type += [prev_col]
@@ -445,8 +451,20 @@ def r2l(s):
 		var = selectvars[k]
 		typ = selectvars_type[k]
 		if '__' + var in out:
-			vars += "	{}		{}.{}%TYPE;\n".format(var, typ.split('_')[0], typ)
-		out = out.replace('__' + var, "i{}.{}".format(selectvars_i[k],var))
+			out = out.replace('__' + var, "i{}.{}".format(selectvars_i[k],var[4:]))
+			substr = " := i{}.{};".format(selectvars_i[k],var[4:])
+			i = out.find(substr)
+			while i >= 0:
+
+				n = i
+				while out[n] in ' \t':
+					n -= 1
+				while out[n] in '_.' or '0'<=out[n]<='9' or 'A'<=out[n]<='Z' or 'a'<=out[n]<='z':
+					n -= 1
+				if "	{}	".format(out[n:i].strip()) not in vars:
+					print(out[n:i])
+					vars += "	{}		{}.{}%TYPE;\n".format(out[n:i].strip(), typ.split('_')[0], typ)
+				i = out.find(substr, i + 1)
 		k += 1
 
 	defs = ''
