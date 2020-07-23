@@ -309,6 +309,66 @@ def r2l(s):
 			out += r2lwrite(s[k])
 			i = s[k+1].strip()
 		return out + ');\n'
+
+	def r2l_evaluate():
+		nonlocal i, s, k
+		v = i.strip()[9:].split('--')
+		comment = ''
+		for i in v[1:]:
+			comment += '--' + i
+
+		if comment != '':
+			out += comment + '\n'
+		else:
+			out = ''
+
+		v = v[0]
+		k += 1
+		cond = []
+		while not s[k].strip().lower().startswith('end-evaluate'):
+			i = s[k]
+
+			if i.strip().lower().startswith('when '):
+				cmt = i.split('--')
+				comment = ''
+				for i in cmt[1:]:
+					comment += '--' + i
+				if comment != '':
+					out = comment + '\n'
+				i = cmt[0]
+				#indent
+				indent = i.lower().split('when')[0]
+				cond += ["{} = {}".format(v, i[i.index('=') + 1:].strip())]
+			elif i.strip().lower().startswith('when-other'):
+				# treat this like an ELSE
+				# if there are any conditions queued, discard them
+				out += "{}ELSE\n".format(indent)
+				cond = []
+			else:
+				if len(cond) > 0:
+					out += "{}IF {}".format(indent, cond[0])
+					for j in cond[1:]:
+						out += ' OR {}'.format(j)
+					out += ' THEN\n'
+					cond = []
+				out += r2lline(i) + '\n'
+			k += 1
+		# print('Zeda, take care of Evaluate!')
+		return out + '{}END IF;\n'.format(indent)
+		i = i.strip()
+		idx = i.lower().index('from')
+		out = '\tutl_file.put_line(file_{},'.format(i[6:idx].strip())
+		out += r2lwrite(i[idx + 4:])
+		while s[k+1].strip() == '':
+			k += 1
+
+		i = s[k+1].strip()
+		while i.startswith("'") or i.startswith('__num_') or i.startswith('__col_') or i.startswith('__var_'):
+			out += ' ||\n\t\t\t'
+			k += 1
+			out += r2lwrite(s[k])
+			i = s[k+1].strip()
+		return out + ');\n'
 	global stack, selectvars_type
 
 	stack = []
@@ -334,7 +394,10 @@ def r2l(s):
 		i = s[k]
 		if i.strip().startswith('write'):
 			out += r2l_write()
-			# first line is after i[13]
+
+		if i.strip().startswith('evaluate '):
+			out += r2l_evaluate()
+
 		if len(stack) == 0:
 			out += r2lline(r2lvar_rename(i)) + '\n'
 		elif stack[-1] != True:
@@ -397,6 +460,8 @@ def r2l(s):
 			while not i.strip().startswith("from"):
 				if i.strip().startswith('write'):
 					work += r2l_write()
+				elif i.strip().startswith('evaluate '):
+					work += r2l_evaluate()
 				else:
 					work += r2lline(i) + '\n'
 				k += 1
