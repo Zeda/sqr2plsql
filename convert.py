@@ -518,7 +518,6 @@ def r2l(s):
 				while out[n] in '_.' or '0'<=out[n]<='9' or 'A'<=out[n]<='Z' or 'a'<=out[n]<='z':
 					n -= 1
 				if "	{}	".format(out[n:i].strip()) not in vars:
-					print(out[n:i])
 					vars += "	{}		{}.{}%TYPE;\n".format(out[n:i].strip(), typ.split('_')[0], typ)
 				i = out.find(substr, i + 1)
 		k += 1
