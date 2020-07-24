@@ -63,7 +63,6 @@ def printparse(s):
                 coords = t + ['']
             else:
                 coords = t + ['+0','']
-    print(coords)
     #return edit, coords, and out
     s = ''
     for i in out:
