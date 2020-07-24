@@ -47,7 +47,7 @@ def indenter(s):
             if i.lower().startswith(stack[-1], 4):
                 levl -= 1
                 stack.pop()
-                out += "{}{}".format(indent*levl+halfindent*half, i.upper())
+                out += "{}END {}".format(indent*levl+halfindent*half, i[4:])
             elif collapsed > 0 and i.lower().endswith(' if;'):
                 collapsed -= 1
             else:
