@@ -22,19 +22,19 @@ All in all, it's not pretty, but these programs have been a huge help.
 This program is written in Python3, so you'll want Python3. Once you have that,
 the syntax is pretty straight-forward:
 ```
-python3 convert.py infile1 outfile1 [infile2 outfile2 ...]
+python3 r2l.py infile1 outfile1 [infile2 outfile2 ...]
 ```
 
 For example, if I had `foo.sqr` and I am converting it to
 `foo.sql`, I use:
 ```
-python3 convert.py foo.sqr foo.sql
+python3 r2l.py foo.sqr foo.sql
 ```
 
 It might also be helpful to pass it through `indent.py`, so combined:
 ```
 # convert foo.sqr to foo.sql
-python3 convert.py foo.sqr foo.sql
+python3 r2l.py foo.sqr foo.sql
 
 # indent foo.sql and store the result back to foo.sql
 python3 indent.py foo.sql foo.sql
@@ -83,7 +83,7 @@ go through the PL/SQL code to clean it up.
 
 # Tools
 * Included are:
-  * `convert.py` is the main program for converting.
+  * `r2l.py` is the main program for converting.
   * `print.py` can take a file of print statements and attempts to convert them
     into suitable PL/SQL. You'll need to modify the source code for `print.py`
     in order to modify the template strings, `put` and `putline`. The program
@@ -93,7 +93,7 @@ go through the PL/SQL code to clean it up.
 
     * `put` is a template for placing a string without appending a newline.
     * `putline` is a template for placing a string and then appending a newline.
-    * `print.py` takes the same inputs as `convert.py`. It is by no means
+    * `print.py` takes the same inputs as `r2l.py`. It is by no means
     perfect, and may be buggy, but it is quite helpful.
   * `indent.py` reads PL/SQL code and tries to indent it in a helpful way. It
     also collapses occurrences of `ELSE` followed by `IF` to `ELSIF`.
