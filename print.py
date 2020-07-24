@@ -1,5 +1,4 @@
 import sys
-# Fails on ''. For example, 'This''ll fail'
 
 put = "utl_file.put(my_file, {});\n"
 printline = "utl_file.put_line(my_file, {});\n"
@@ -19,12 +18,16 @@ def printparse(s):
     out = []
     edit = ''
     coords = []
-    while k<len(s):
+    s += ' '
+    while k<len(s)-1:
         t = ''
         if s[k] == "'":
             t += s[k]
             k += 1
-            while s[k]!="'":
+            while s[k]!="'" or s[k:k+2] == "''":
+                if s[k] == "'":
+                    t += s[k]
+                    k += 1
                 t += s[k]
                 k += 1
             out += t + "'"
@@ -37,6 +40,8 @@ def printparse(s):
         t = ''
         if s.startswith(' edit ', k):
             k += 6
+            while s[k]==' ':
+                k += 1
             edit = "'"
             while k<len(s)-1 and s[k] != ' ':
                 edit += s[k]
@@ -58,6 +63,7 @@ def printparse(s):
                 coords = t + ['']
             else:
                 coords = t + ['+0','']
+    print(coords)
     #return edit, coords, and out
     s = ''
     for i in out:
@@ -65,8 +71,10 @@ def printparse(s):
     coords[0] = coords[0].strip()
     coords[1] = coords[1].strip()
     coords[2] = coords[2].strip()
-    if edit[-5:] == "9.99'":
+    if edit.endswith("9.99'"):
         edit = edit[0:-5]+"0.00'"
+    elif edit.endswith("9.9'"):
+        edit = edit[0:-4]+"0.0"
     return (edit, coords, s.strip())
 
 def printle(rows):
@@ -96,7 +104,10 @@ def printle(rows):
                         str += i[n]
                     else:
                         lpad = isnumform(i[n+1])
-                        str += "to_char({}, {})".format(i[n], i[n+1])
+                        if 'x-' in i[n+1]:
+                            str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
+                        else:
+                            str += "to_char({}, {})".format(i[n], i[n+1])
                     n += 2
                     if n<len(i):
                         str += ' || '
@@ -109,11 +120,14 @@ def printle(rows):
             i = j
             n = 2
             str = ''
-            while n<len(i):
+            while n<len(i) - 1:
                 if i[n+1] == '':
                     str += i[n]
                 else:
-                    str += "to_char({}, {})".format(i[n], i[n+1])
+                    if 'x-' in i[n+1]:
+                        str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
+                    else:
+                        str += "to_char({}, {})".format(i[n], i[n+1])
                 n += 2
                 if n<len(i):
                     str += ' || '
@@ -121,7 +135,7 @@ def printle(rows):
             s += printline.format(str)
         else:
             s += printline.format("''")
-    return s
+    return s.replace("' || '", '')
 
 def printify(s):
     src = []
@@ -144,12 +158,14 @@ def printify(s):
                 row = int(coords[0])
                 while len(rows)<=row:
                     rows += [[]]
-                if coords[1][0] == '+0':
-                    rows[row][-1] += [coords[2], str, edit]
+                if coords[1][0].startswith('+'):
+                    if int(coords[1][1:]) > 0:
+                        rows[row][-1][0] += " || {}".format(' '*int(coords[1][1:]))
+                    rows[row][-1] += [str, edit]
                 else:
                     rows[row] += [[int(coords[1]), coords[2], str, edit]]
         else:
-            s += src[k]
+            s += src[k] + '\n'
         k += 1
     s += printle(rows)
     return s
@@ -157,19 +173,19 @@ def printify(s):
 
 k = 1
 while k<len(sys.argv):
-	fin = sys.argv[k]
-	f = open(fin, 'r')
-	s = f.read()
-	f.close()
+    fin = sys.argv[k]
+    f = open(fin, 'r')
+    s = f.read()
+    f.close()
 
-	s = printify(s)
+    s = printify(s)
 
-	if k+1 < len(sys.argv):
-		fout = sys.argv[k+1]
-		f = open(fout,'w')
-		f.write(s)
-		f.close()
-	else:
-		print(s)
+    if k+1 < len(sys.argv):
+        fout = sys.argv[k+1]
+        f = open(fout,'w')
+        f.write(s)
+        f.close()
+    else:
+        print(s)
 
-	k += 2
+    k += 2
