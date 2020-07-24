@@ -95,11 +95,49 @@ go through the PL/SQL code to clean it up.
     * `putline` is a template for placing a string and then appending a newline.
     * `print.py` takes the same inputs as `r2l.py`. It is by no means
     perfect, and may be buggy, but it is quite helpful.
+  * `print2.py` converts `print` statements differently, using the function `f_overstr` to simplify converting `print` statements. It's less buggy than `print.py` but does require the included `f_overstr.sql`. I don't know the jargon, I think it's something like "being part of the database schema" or something? I genuinely don't know. Please correct this if you know.
+  * `f_overstr.sql` is a helper function used in the output of `print2.py`. It takes two strings and overwrites one on top of the other.
   * `indent.py` reads PL/SQL code and tries to indent it in a helpful way. It
     also collapses occurrences of `ELSE` followed by `IF` to `ELSIF`.
   * `procfinder.py` is just a tool that locates PL/SQL procedures and generates
     declaration statements. I just find this useful for PL/SQL programming in
     general. It breaks with `function`s though.
+
+# print.py and print2.py
+`print.py` and `print2.py` take an input file of SQR `print` statements and either print the converted version to the console, or writes them out to a file. For example, here is a file with some SQR:
+```
+print 'Howdy, y''all! My SSN is ' (+2,1)
+print i.ssn (0) edit xxx-xx-xxxx
+
+print 'My name is ' (+1,1)
+print 'Zeda' (0, 30, 10)
+print 'Thomas' (0, 40)
+```
+
+`print.py` returns:
+```
+utl_file.put_line(my_file, '');
+
+utl_file.put_line(my_file, 'Howdy, y''all! My SSN is ' || replace(to_char(i.ssn, 'FM000,00,0000'), ',', '-'));
+
+utl_file.put(my_file, rpad('My name is ', 29));
+utl_file.put(my_file, rpad('Zeda', 10));
+utl_file.put_line(my_file, 'Thomas');
+```
+
+And `print2.py` returns:
+```
+line := ''
+utl_file.put_line(my_file, line);
+
+line := 'Howdy, y''all! My SSN is ' || replace(to_char(i.ssn, 'FM000,00,0000'), ',', '-');
+utl_file.put_line(my_file, line);
+
+line := 'My name is ';
+line := f_overstr(line, 'Zeda', 30, width=>10);
+line := f_overstr(line, 'Thomas', 40);
+utl_file.put_line(my_file, line);
+```
 
 # LEGAL
 [License](LICENSE.md)
