@@ -325,6 +325,7 @@ def r2l(s):
 		v = v[0]
 		k += 1
 		cond = []
+		first = True
 		while not s[k].strip().lower().startswith('end-evaluate'):
 			i = s[k]
 
@@ -346,29 +347,19 @@ def r2l(s):
 				cond = []
 			else:
 				if len(cond) > 0:
-					out += "{}IF {}".format(indent, cond[0])
+					if first:
+						out += "{}IF {}".format(indent, cond[0])
+						first = False
+					else:
+						out += "{}ELSIF {}".format(indent, cond[0])
 					for j in cond[1:]:
 						out += ' OR {}'.format(j)
 					out += ' THEN\n'
 					cond = []
 				out += r2lline(i) + '\n'
 			k += 1
-		# print('Zeda, take care of Evaluate!')
 		return out + '{}END IF;\n'.format(indent)
-		i = i.strip()
-		idx = i.lower().index('from')
-		out = '\tutl_file.put_line(file_{},'.format(i[6:idx].strip())
-		out += r2lwrite(i[idx + 4:])
-		while s[k+1].strip() == '':
-			k += 1
 
-		i = s[k+1].strip()
-		while i.startswith("'") or i.startswith('__num_') or i.startswith('__col_') or i.startswith('__var_'):
-			out += ' ||\n\t\t\t'
-			k += 1
-			out += r2lwrite(s[k])
-			i = s[k+1].strip()
-		return out + ');\n'
 	global stack, selectvars_type
 
 	stack = []
