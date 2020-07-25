@@ -107,7 +107,7 @@ go through the PL/SQL code to clean it up.
 `print.py` and `print2.py` take an input file of SQR `print` statements and either print the converted version to the console, or writes them out to a file. For example, here is a file with some SQR:
 ```
 print 'Howdy, y''all! My SSN is ' (+2,1)
-print i.ssn (0) edit xxx-xx-xxxx
+print $ssn (0) edit xxx-xx-xxxx
 
 print 'My name is ' (+1,1)
 print 'Zeda' (0, 30, 10)
@@ -118,7 +118,7 @@ print 'Thomas' (0, 40)
 ```
 utl_file.put_line(my_file, '');
 
-utl_file.put_line(my_file, 'Howdy, y''all! My SSN is ' || replace(to_char(i.ssn, 'FM000,00,0000'), ',', '-'));
+utl_file.put_line(my_file, 'Howdy, y''all! My SSN is ' || replace(to_char(ssn, 'FM000,00,0000'), ',', '-'));
 
 utl_file.put(my_file, rpad('My name is ', 29));
 utl_file.put(my_file, rpad('Zeda', 10));
@@ -130,7 +130,7 @@ And `print2.py` returns:
 line := ''
 utl_file.put_line(my_file, line);
 
-line := 'Howdy, y''all! My SSN is ' || replace(to_char(i.ssn, 'FM000,00,0000'), ',', '-');
+line := 'Howdy, y''all! My SSN is ' || replace(to_char(ssn, 'FM000,00,0000'), ',', '-');
 utl_file.put_line(my_file, line);
 
 line := 'My name is ';
