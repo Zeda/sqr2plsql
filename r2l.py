@@ -235,7 +235,10 @@ def r2lline(s):
         return "{}{} := to_char({}, '{}');".format(indent,t[0].strip(),s[0].strip(),t[-1].strip())
     elif s.startswith('display '):
         (s, comment) = decomment(s[8:])
-        return "DBMS_OUTPUT.PUT_LINE({});{}".format(s, comment)
+        if s.endswith('noline'):
+            return "DBMS_OUTPUT.PUT({});{}".format(s[0:-6].strip(), comment)
+        else:
+            return "DBMS_OUTPUT.PUT_LINE({});{}".format(s, comment)
     elif s == 'begin-sql':
         return ''
     elif s == 'end-sql':
