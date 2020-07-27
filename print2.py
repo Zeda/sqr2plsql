@@ -89,15 +89,24 @@ def printle(rows):
                 n = 2
                 str = ''
                 while n<len(i):
-                    lpad = False
                     if i[n+1] == '':
                         str += i[n]
                     elif 'x-' in i[n+1]:
                         str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
                     elif isnumform(i[n+1]):
-                        str += "lpad({}, {})".format(i[n], len(i[n+1]) - 2)
+                        form = i[n+1][1:-1]
+                        if form[0] == '0':
+                            #if the format has a leading 0, then it will pad zeros, so no need to lpad
+                            str += "to_char({}, 'FM{}')".format(i[n], form)
+                        else:
+                            # the format has no leading zero, so we manually pad it
+                            str += "lpad(to_char({}, 'FM{}'), {})".format(i[n], form, len(form))
                     else:
                         str += "to_char({}, {})".format(i[n], i[n+1])
+
+
+
+
                     n += 2
                     if n<len(i):
                         str += ' || '
@@ -108,7 +117,7 @@ def printle(rows):
                     else:
                         pre = ''
                     if i[1] != '':
-                        s += "{} := {}rpad({}, {});\n".format(linevar, pre, str, i[1])
+                        s += "{} := rpad({}{}, {});\n".format(linevar, pre, str, i[1])
                     else:
                         s += "{} := {}{};\n".format(linevar, pre, str)
                 else:
@@ -128,6 +137,7 @@ def printify(s):
     rows = []
     k = 0
     s = ''
+    row = 1
     while k<len(src):
         if src[k].startswith('print '):
             (edit, coords, str) = printparse(src[k][6:])
@@ -137,7 +147,8 @@ def printify(s):
                 s += printle(rows)
                 rows = [[[int(coords[1]), coords[2], str, edit]]]
             else:
-                row = int(coords[0])
+                if int(coords[0]) != 0:
+                    row = 1 + int(coords[0])
                 while len(rows)<=row:
                     rows += [[]]
                 if coords[1][0].startswith('+'):
