@@ -237,6 +237,7 @@ def r2lline(s):
         if t[0].startswith('__num_'):
             return "{}{} := to_number({});".format(indent,t[0].strip(),s[0].strip())
         else:
+            t += ['']
             t[1] = t[1].strip()
             if t[1] != '':
                 return "{}{} := to_char({}, '{}');".format(indent,t[0].strip(),s[0].strip(),t[1].strip())
