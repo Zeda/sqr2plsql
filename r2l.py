@@ -219,9 +219,11 @@ def r2lline(s):
     elif s.startswith('end-procedure'):
         return "END {};".format(stack[-1])
     elif s.startswith('while '):
-        return indent+s+' LOOP'
+        (s, comment) = decomment(s[6:])
+        return "{}WHILE {} LOOP{}".format(indent, s, comment)
     elif s.startswith('if '):
-        return indent+s+' THEN'
+        (s, comment) = decomment(s[3:])
+        return "{}IF {} THEN{}".format(indent, s, comment)
     elif s == 'end-while':
         return indent+'END LOOP;'
     elif s.startswith('end-if'):
