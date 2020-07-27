@@ -312,12 +312,13 @@ def r2l(s):
         while s[k+1].strip() == '':
             k += 1
 
-        i = s[k+1].strip()
+        k += 1
+        i = s[k].strip()
         while i.startswith("'") or i.startswith('__num_') or i.startswith('__col_') or i.startswith('__var_'):
             out += ' ||\n\t\t\t'
-            k += 1
             out += r2lwrite(s[k])
-            i = s[k+1].strip()
+            k += 1
+            i = s[k].strip()
         return out + ');\n'
 
     def r2l_evaluate():
@@ -377,7 +378,7 @@ def r2l(s):
 
     while k<len(s):
         i = s[k]
-        if i.strip().startswith('write'):
+        while i.strip().startswith('write'):
             out += r2l_write()
 
         if i.strip().startswith('evaluate '):
