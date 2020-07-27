@@ -232,7 +232,14 @@ def r2lline(s):
     elif s.startswith('move '):
         s = s[5:].split(' to ')
         t = s[1].strip().split(' ')
-        return "{}{} := to_char({}, '{}');".format(indent,t[0].strip(),s[0].strip(),t[-1].strip())
+        if t[0].startswith('__num_'):
+            return "{}{} := to_number({});".format(indent,t[0].strip(),s[0].strip())
+        else:
+            t[1] = t[1].strip()
+            if t[1] != '':
+                return "{}{} := to_char({}, '{}');".format(indent,t[0].strip(),s[0].strip(),t[1].strip())
+            else:
+                return "{}{} := to_char({});".format(indent,t[0].strip(),s[0].strip())
     elif s.startswith('display '):
         (s, comment) = decomment(s[8:])
         if s.endswith('noline'):
