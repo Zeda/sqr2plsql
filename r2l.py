@@ -67,6 +67,15 @@ writepad = re.compile(':\\d+$')
 #
 #
 #     return "{}rpad(to_char({}), {})".format(indent,s[0:t.span()[0]])
+def decomment(s):
+    i = s.find('--')
+    if i >= 0:
+        comment = '  ' + s[i:].strip()
+        s = s[0:i].strip()
+    else:
+        comment = ''
+        s = s.strip()
+    return (s, comment)
 
 def snake_to_camel(s):
     if s=='':
@@ -100,7 +109,7 @@ def r2lwrite(s):
         if s.startswith('__num_'):
             return "{}to_char({})".format(indent,s.split('--')[0].strip())
         else:
-            return indent+s
+            return indent + s
 
     if s.startswith('__num_'):
         return "{}rpad(to_char({}), {})".format(indent,s[0:t.span()[0]],t.group()[1:])
@@ -170,16 +179,9 @@ def r2lline(s):
         t = ''
         for i in s[1:]:
             t += i + '='
-        t = t[0:-1].split('--')
 
-        comment = ''
-        for i in t[1:]:
-            comment += '--'+i
-
-        if comment != '':
-            comment = ' ' + comment
-
-        return "{}{}:={};{}".format(indent,s[0],t[0],comment)
+        (t, comment) = decomment(t[0:-1])
+        return "{}{}:={};{}".format(indent,s[0],t,comment)
 
     elif s.startswith('input '):
         return indent+'&'+s[6:]
@@ -193,15 +195,8 @@ def r2lline(s):
         t = s[1]
         for i in s[2:]:
             t += ' to ' + i
-        t = t.split('--')
-        comment = ''
-        for i in t[1:]:
-            comment += '--' + i
 
-        t = t[0].strip()
-        if comment != '':
-            comment = ' ' + comment
-
+        (t, comment) = decomment(t)
         return "{}{} := {} + {};{}".format(indent,t,t,s[0].strip(), comment)
     elif s == 'begin-report':
         stack += ['P_Main']
@@ -239,7 +234,8 @@ def r2lline(s):
         t = s[1].strip().split(' ')
         return "{}{} := to_char({}, '{}');".format(indent,t[0].strip(),s[0].strip(),t[-1].strip())
     elif s.startswith('display '):
-        return '--'+indent+s
+        (s, comment) = decomment(s[8:])
+        return "DBMS_OUTPUT.PUT_LINE({});{}".format(s, comment)
     elif s == 'begin-sql':
         return ''
     elif s == 'end-sql':
@@ -286,7 +282,7 @@ def low(s):
             else:
                 t += s[k].lower()
         elif s[k] == '&':
-            t += "'|| chr(38) ||'"
+            t += "' || chr(38) || '"
         else:
             t += s[k]
         k += 1
@@ -313,17 +309,7 @@ def r2l(s):
 
     def r2l_evaluate():
         nonlocal i, s, k
-        v = i.strip()[9:].split('--')
-        comment = ''
-        for i in v[1:]:
-            comment += '--' + i
-
-        if comment != '':
-            out += comment + '\n'
-        else:
-            out = ''
-
-        v = v[0]
+        (v, out) = decomment(i.strip()[9:])
         k += 1
         cond = []
         first = True
@@ -331,13 +317,7 @@ def r2l(s):
             i = s[k]
 
             if i.strip().lower().startswith('when '):
-                cmt = i.split('--')
-                comment = ''
-                for i in cmt[1:]:
-                    comment += '--' + i
-                if comment != '':
-                    out = comment + '\n'
-                i = cmt[0]
+                (i, comment) = decomment(i)
                 #indent
                 indent = i.lower().split('when')[0]
                 cond += ["{} = {}".format(v, i[i.index('=') + 1:].strip())]
