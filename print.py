@@ -3,11 +3,19 @@ import sys
 put = "utl_file.put(my_file, {});\n"
 printline = "utl_file.put_line(my_file, {});\n"
 
+tab = '\t'
+tabsize = 8
+
 def isnumform(s):
     for i in s:
         if i not in "'.0123456789":
             return False
     return True
+
+def isstr(s):
+    if not s.startswith("'") or not s.startswith("'"):
+        return False
+    return "'" in s.replace("''", "")
 
 def printparse(s):
     # replace tabs as spaces
@@ -84,7 +92,9 @@ def printle(rows):
         k = 0
         if len(row) >= 1:
             if row[0][0] > 1:
-                s += put.format("'{}'".format(' '*(row[0][0]-1)))
+                strs = ["'{}'".format(' '*(row[0][0]-1))]
+            else:
+                strs = ['']
             j = row[0]
             while k < len(row)-1:
                 i = j
@@ -117,7 +127,16 @@ def printle(rows):
                     n += 2
                     if n<len(i):
                         str += ' || '
-                s += put.format("rpad({}, {})".format(str, width))
+                if isstr(str):
+                    str = str[1:-1]
+                    str += ' '*(width - len(str))
+                    # if the previous str ends in a "'", then fuse them
+                    if strs[-1].endswith("'"):
+                        strs[-1] = strs[-1][0:-1] + str[0:width] + "'"
+                    else:
+                        strs += ["'" + str[0:width] + "'"]
+                else:
+                    strs += ["rpad({}, {})".format(str, width)]
 
             # Now the last item
             i = j
@@ -135,7 +154,17 @@ def printle(rows):
                 if n<len(i):
                     str += ' || '
 
-            s += printline.format(str)
+            if strs[-1].endswith("'") and str.startswith("'"):
+                strs[-1] = strs[-1][0:-1] + str[1:]
+            else:
+                strs += [str]
+
+            # now loop through all strs
+            t = ''
+            for i in strs:
+                if i != '':
+                    t += '{}{} ||\n'.format(tab * int((printline.index('{') + tabsize/2)/tabsize), i)
+            s += printline.format(t[0:-4].strip())
         else:
             s += printline.format("''")
     return s.replace("' || '", '')
@@ -149,18 +178,19 @@ def printify(s):
     rows = []
     k = 0
     s = ''
-    row = 1
+    row = 0
     while k<len(src):
         if src[k].startswith('print '):
             (edit, coords, str) = printparse(src[k][6:])
             if coords[0][0] == '+':
                 for i in range(int(coords[0][1:])-1):
                     rows += [[]]
+                    row += 1
                 s += printle(rows)
                 rows = [[[int(coords[1]), coords[2], str, edit]]]
             else:
                 if int(coords[0]) != 0:
-                    row = 1 + int(coords[0])
+                    row = int(coords[0]) - 1
                 while len(rows)<=row:
                     rows += [[]]
                 if coords[1][0].startswith('+'):

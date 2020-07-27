@@ -9,6 +9,10 @@ def isnumform(s):
             return False
     return True
 
+def isstr(s):
+    if not s.startswith("'") or not s.startswith("'"):
+        return False
+    return "'" in s.replace("''", "")
 def printparse(s):
     # replace tabs as spaces
     s = s.replace('\t',' ')
@@ -103,13 +107,10 @@ def printle(rows):
                             str += "lpad(to_char({}, 'FM{}'), {})".format(i[n], form, len(form))
                     else:
                         str += "to_char({}, {})".format(i[n], i[n+1])
-
-
-
-
                     n += 2
                     if n<len(i):
                         str += ' || '
+
                 if first:
                     first = False
                     if i[0] > 1:
@@ -117,7 +118,13 @@ def printle(rows):
                     else:
                         pre = ''
                     if i[1] != '':
-                        s += "{} := rpad({}{}, {});\n".format(linevar, pre, str, i[1])
+                        if isstr(str):
+                            str = str[1:-1]
+                            str += ' '*(int(i[1]) - len(str))
+                            str = str[0:int(i[1])]
+                            s += "{} := {}'{}';\n".format(linevar, pre, str)
+                        else:
+                            s += "{} := {}rpad({}, {});\n".format(linevar, pre, str, i[1])
                     else:
                         s += "{} := {}{};\n".format(linevar, pre, str)
                 else:
