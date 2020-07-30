@@ -1,12 +1,34 @@
 import sys
 
 put = "utl_file.put(my_file, {});\n"
-printline = "utl_file.put_line(my_file, {});\n"
-
-printline = "P_PrintLine({});\n"
-
+put_line = "utl_file.put_line(my_file, {});\n"
 tab = '\t'
 tabsize = 8
+page_width = 80
+
+def descape(s):
+    return s.replace('\\t', '\t').replace('\\n', '\n').replace('\\r', '\r')
+
+try:
+    f = open("print_vars.txt", 'r')
+    s = f.read()
+    f.close()
+    for i in s.split('\n'):
+        if i.startswith('ignore'):
+            break
+        elif i.startswith('page_width'):
+            page_width = descape(i[i.index('=') + 1:].strip())
+        elif i.startswith('put_line'):
+            put_line = descape(i[i.index('=') + 1:].strip())
+        elif i.startswith('put'):
+            put = descape(i[i.index('=') + 1:].strip())
+        elif i.startswith('tabsize'):
+            tabsize = int(i[i.index('=') + 1:].strip())
+        elif i.startswith('tab'):
+            tab = descape(i[i.index('=') + 1:].strip())
+except:
+    pass
+
 
 def isnumform(s):
     for i in s:
@@ -18,6 +40,12 @@ def isstr(s):
     if not s.startswith("'") or not s.startswith("'"):
         return False
     return "'" in s.replace("''", "")
+
+def formnum(s):
+    k = s.find('.')
+    if k < 0:
+        return s
+    return s[0:k-1] + s[k-1:].replace('9', '0')
 
 def printparse(s):
     # replace tabs as spaces
@@ -78,12 +106,10 @@ def printparse(s):
     for i in out:
         s += i
     coords[0] = coords[0].strip()
+    if coords[0] == '':
+        coords[0] = '0'
     coords[1] = coords[1].strip()
     coords[2] = coords[2].strip()
-    if edit.endswith("9.99'"):
-        edit = edit[0:-5]+"0.00'"
-    elif edit.endswith("9.9'"):
-        edit = edit[0:-4]+"0.0"
     return (edit, coords, s.strip())
 
 def printle(rows):
@@ -115,7 +141,7 @@ def printle(rows):
                     elif 'x-' in i[n+1]:
                         str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
                     elif isnumform(i[n+1]):
-                        form = i[n+1][1:-1]
+                        form = formnum(i[n+1][1:-1])
                         if form[0] == '0':
                             #if the format has a leading 0, then it will pad zeros, so no need to lpad
                             str += "to_char({}, 'FM{}')".format(i[n], form)
@@ -148,7 +174,7 @@ def printle(rows):
                 elif 'x-' in i[n+1]:
                         str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
                 elif isnumform(i[n+1]):
-                    form = i[n+1][1:-1]
+                    form = formnum(i[n+1][1:-1])
                     if form[0] == '0':
                         #if the format has a leading 0, then it will pad zeros, so no need to lpad
                         str += "to_char({}, 'FM{}')".format(i[n], form)
@@ -170,10 +196,10 @@ def printle(rows):
             t = ''
             for i in strs:
                 if i != '':
-                    t += '{}{} ||\n'.format(tab * int((printline.index('{') + tabsize/2)/tabsize), i)
-            s += printline.format(t[0:-4].strip())
+                    t += '{}{} ||\n'.format(tab * int((put_line.index('{') + tabsize/2)/tabsize), i)
+            s += put_line.format(t[0:-4].strip())
         else:
-            s += printline.format("''")
+            s += put_line.format("''")
     return s.replace("' || '", '')
 
 def printify(s):
@@ -206,6 +232,8 @@ def printify(s):
                     rows[row][-1] += [str, edit]
                 else:
                     rows[row] += [[int(coords[1]), coords[2], str, edit]]
+        elif src[k].startswith('edit '):
+            rows[row][-1][-1] = "'" + src[k][5:].strip().split(' ')[0] + "'"
         else:
             s += src[k] + '\n'
         k += 1
