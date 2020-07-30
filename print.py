@@ -3,6 +3,8 @@ import sys
 put = "utl_file.put(my_file, {});\n"
 printline = "utl_file.put_line(my_file, {});\n"
 
+printline = "P_PrintLine({});\n"
+
 tab = '\t'
 tabsize = 8
 
@@ -210,6 +212,13 @@ def printify(s):
     s += printle(rows)
     return s
 
+
+if len(sys.argv) == 1:
+    try:
+        import pyperclip
+        pyperclip.copy(printify(pyperclip.paste()))
+    except:
+        pass
 
 k = 1
 while k<len(sys.argv):
