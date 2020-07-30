@@ -8,7 +8,7 @@ tabsize = 8
 
 def isnumform(s):
     for i in s:
-        if i not in "'.0123456789":
+        if i not in "'.0123456789,":
             return False
     return True
 
@@ -110,20 +110,18 @@ def printle(rows):
                 while n<len(i):
                     if i[n+1] == '':
                         str += i[n]
-                    else:
-                        if 'x-' in i[n+1]:
-                            str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
+                    elif 'x-' in i[n+1]:
+                        str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
+                    elif isnumform(i[n+1]):
+                        form = i[n+1][1:-1]
+                        if form[0] == '0':
+                            #if the format has a leading 0, then it will pad zeros, so no need to lpad
+                            str += "to_char({}, 'FM{}')".format(i[n], form)
                         else:
-                            if isnumform(i[n+1]):
-                                form = i[n+1][1:-1]
-                                if form[0] == '0':
-                                    #if the format has a leading 0, then it will pad zeros, so no need to lpad
-                                    str += "to_char({}, 'FM{}')".format(i[n], form)
-                                else:
-                                    # the format has no leading zero, so we manually pad it
-                                    str += "lpad(to_char({}, 'FM{}'), {})".format(i[n], form, len(form))
-                            else:
-                                str += "to_char({}, {})".format(i[n], i[n+1])
+                            # the format has no leading zero, so we manually pad it
+                            str += "lpad(to_char({}, 'FM{}'), {})".format(i[n], form, len(form))
+                    else:
+                        str += "to_char({}, {})".format(i[n], i[n+1])
                     n += 2
                     if n<len(i):
                         str += ' || '
@@ -145,11 +143,18 @@ def printle(rows):
             while n<len(i) - 1:
                 if i[n+1] == '':
                     str += i[n]
-                else:
-                    if 'x-' in i[n+1]:
+                elif 'x-' in i[n+1]:
                         str += "replace(to_char({}, 'FM{}), ',', '-')".format(i[n], i[n+1][1:].replace('x', '0').replace('-', ','))
+                elif isnumform(i[n+1]):
+                    form = i[n+1][1:-1]
+                    if form[0] == '0':
+                        #if the format has a leading 0, then it will pad zeros, so no need to lpad
+                        str += "to_char({}, 'FM{}')".format(i[n], form)
                     else:
-                        str += "to_char({}, {})".format(i[n], i[n+1])
+                        # the format has no leading zero, so we manually pad it
+                        str += "lpad(to_char({}, 'FM{}'), {})".format(i[n], form, len(form))
+                else:
+                    str += "to_char({}, {})".format(i[n], i[n+1])
                 n += 2
                 if n<len(i):
                     str += ' || '
@@ -185,17 +190,17 @@ def printify(s):
             if coords[0][0] == '+':
                 for i in range(int(coords[0][1:])-1):
                     rows += [[]]
-                    row += 1
                 s += printle(rows)
                 rows = [[[int(coords[1]), coords[2], str, edit]]]
+                row = 0
             else:
                 if int(coords[0]) != 0:
                     row = int(coords[0]) - 1
                 while len(rows)<=row:
                     rows += [[]]
-                if coords[1][0].startswith('+'):
+                if coords[1].startswith('+'):
                     if int(coords[1][1:]) > 0:
-                        rows[row][-1][0] += " || {}".format(' '*int(coords[1][1:]))
+                        rows[row][-1][-2] += " || '{}'".format(' '*int(coords[1][1:]))
                     rows[row][-1] += [str, edit]
                 else:
                     rows[row] += [[int(coords[1]), coords[2], str, edit]]
@@ -221,6 +226,11 @@ while k<len(sys.argv):
         f.write(s)
         f.close()
     else:
+        try:
+            import pyperclip
+            pyperclip.copy(s)
+        except:
+            pass
         print(s)
 
     k += 2
