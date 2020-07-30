@@ -353,6 +353,8 @@ def r2l(s):
                     cond = []
                 out += r2lline(i) + '\n'
             k += 1
+        k += 1
+        i = s[k]
         return out + '{}END IF;\n'.format(indent)
 
     global stack, selectvars_type
@@ -450,8 +452,8 @@ def r2l(s):
                     work += r2l_evaluate()
                 else:
                     work += r2lline(i) + '\n'
-                k += 1
-                i = s[k]
+                    k += 1
+                    i = s[k]
             logic = ''
             while "end-select" not in i:
                 logic += '\n\t' + r2lline(i)
