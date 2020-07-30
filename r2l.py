@@ -37,7 +37,7 @@ START gurgrtb pkz_name;
 WHENEVER SQLERROR EXIT ROLLBACK;
 """
 
-foot = """END pkz_name;
+foot = sep + """END pkz_name;
 /
 show errors
 grant execute on pkz_name to public;
@@ -256,8 +256,8 @@ def r2lline(s):
     elif s.startswith('open '):
         s = s[5:].split(' as ')
         return "{}file_{} := UTL_FILE.FOPEN('{}', {}, 'w');".format(indent,s[1].split(' ')[0],'FILE_DIR',s[0])
-
-
+    elif s.startswith('close '):
+        return "UTL_FILE.FCLOSE(file_{});".format(s[6:])
     return indent+s
 
 def low(s):
@@ -522,13 +522,23 @@ def r2l(s):
     for i in stack:
         defs += "\tPROCEDURE {};\n".format(i)
 
-    s = comment+head.format(defs)+vars+cursors+out+foot
+    s =comment+head.format(defs)+vars+cursors+out+foot
     s = s.replace('__col_', 'col_')
     s = s.replace('__num_', '')
     s = s.replace('__var_', '')
     s = s.replace('\n;', ';')
-    s = s.replace('\ndelete from', 'DELETE FROM')
-    s = s.replace('where', 'WHERE')
+    s = s.replace(" = ''", ' IS NULL')
+    s = s.replace("<> ''", 'IS NOT NULL')
+
+    while '\n\n\n--' in s:
+        s = s.replace('\n\n\n--', '\n\n--')
+
+    while 'BEGIN\n\n' in s:
+        s = s.replace('BEGIN\n\n', 'BEGIN\n')
+
+    while '\n\nEND' in s:
+        s = s.replace('\n\nEND', '\nEND')
+
     return s
 
 k = 1
