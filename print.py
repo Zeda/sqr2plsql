@@ -128,10 +128,12 @@ def printle(rows):
                 i = j
                 k += 1
                 j = row[k]
+
+                width = j[0]-i[0]
                 if i[1] == '':
-                    width = j[0]-i[0]
+                    pad = width
                 else:
-                    width = int(i[1])
+                    pad = int(i[1])
 
                 n = 2
                 str = ''
@@ -148,12 +150,25 @@ def printle(rows):
                         else:
                             # the format has no leading zero, so we manually pad it
                             str += "lpad(to_char({}, 'FM{}'), {})".format(i[n], form, len(form))
+                    elif i[n+1] == "'><'":
+                        # center text
+                        print("oops! You seem to be centering multiple texts on the same line!")
                     else:
                         str += "to_char({}, {})".format(i[n], i[n+1])
                     n += 2
                     if n<len(i):
                         str += ' || '
-                if isstr(str):
+
+                if pad != width:
+                    if isstr(str):
+                        str = "{}{}".format(str[1:-1], ' '*(pad + 2-len(str)))
+                        str = "'" + str[0:pad] + "'"
+                    else:
+                        str = "rpad({}, {})".format(str, pad)
+
+                if j[0] == 99999:
+                    strs += [str]
+                elif isstr(str):
                     str = str[1:-1]
                     str += ' '*(width - len(str))
                     # if the previous str ends in a "'", then fuse them
@@ -161,6 +176,8 @@ def printle(rows):
                         strs[-1] = strs[-1][0:-1] + str[0:width] + "'"
                     else:
                         strs += ["'" + str[0:width] + "'"]
+                elif pad != width:
+                    strs += ["{} || '{}'".format(str, ' '*(width-pad))]
                 else:
                     strs += ["rpad({}, {})".format(str, width)]
 
@@ -168,6 +185,7 @@ def printle(rows):
             i = j
             n = 2
             str = ''
+            center_str = ''
             while n<len(i) - 1:
                 if i[n+1] == '':
                     str += i[n]
@@ -181,6 +199,9 @@ def printle(rows):
                     else:
                         # the format has no leading zero, so we manually pad it
                         str += "lpad(to_char({}, 'FM{}'), {})".format(i[n], form, len(form))
+                elif i[n+1] == "'><'":
+                    # center text
+                    center_str = i[n]
                 else:
                     str += "to_char({}, {})".format(i[n], i[n+1])
                 n += 2
@@ -197,7 +218,10 @@ def printle(rows):
             for i in strs:
                 if i != '':
                     t += '{}{} ||\n'.format(tab * int((put_line.index('{') + tabsize/2)/tabsize), i)
-            s += put_line.format(t[0:-4].strip())
+            t = t[0:-4].strip()
+            if center_str != '':
+                t = "f_center({}, {}, {})".format(t, center_str,  page_width)
+            s += put_line.format(t)
         else:
             s += put_line.format("''")
     return s.replace("' || '", '')
@@ -213,9 +237,39 @@ def printify(s):
     s = ''
     row = 0
     while k<len(src):
-        if src[k].startswith('print '):
-            (edit, coords, str) = printparse(src[k][6:])
-            if coords[0][0] == '+':
+        i = src[k]
+
+        if i.startswith('date-time'):
+            o = i.index('(')
+            c = i.index(')') + 1
+            i = "print sysdate {} edit {}".format(i[o:c], i[c:])
+
+        elif i.startswith('page-number'):
+            o = i.index('(')
+            c = i.index(')') + 1
+            i = "print {} || page_number {}".format(i[c:].strip(), i[o:c])
+
+        while i.endswith('center'):
+            if i == 'center':
+                if len(rows[row][-1]) > 4:
+                    str = rows[row][-1][-2]
+                    rows[row][-1] = rows[row][-1][0:-2]
+                    rows[row] += [[99999, '', str, "'><'"]]
+                k += 1
+                i = src[k]
+            else:
+                i = i[0:-6] + 'edit ><'
+
+        if i.startswith('print '):
+            (edit, coords, str) = printparse(i[6:])
+            if edit == "'><'":
+                i = int(coords[0])
+                if i > 0:
+                    row = i - 1
+                while len(rows) <= row:
+                    rows += [[]]
+                rows[row] += [[99999, '', str, edit]]
+            elif coords[0][0] == '+':
                 for i in range(int(coords[0][1:])-1):
                     rows += [[]]
                 s += printle(rows)
@@ -229,11 +283,14 @@ def printify(s):
                 if coords[1].startswith('+'):
                     if int(coords[1][1:]) > 0:
                         rows[row][-1][-2] += " || '{}'".format(' '*int(coords[1][1:]))
-                    rows[row][-1] += [str, edit]
+                    if len(rows[row]) > 0:
+                        rows[row][-1] += [str, edit]
+                    else:
+                        rows[row] = [[1, coords[2], str, edit]]
                 else:
                     rows[row] += [[int(coords[1]), coords[2], str, edit]]
-        elif src[k].startswith('edit '):
-            rows[row][-1][-1] = "'" + src[k][5:].strip().split(' ')[0] + "'"
+        elif i.startswith('edit '):
+            rows[row][-1][-1] = "'" + i[5:].strip().split(' ')[0] + "'"
         else:
             s += src[k] + '\n'
         k += 1
