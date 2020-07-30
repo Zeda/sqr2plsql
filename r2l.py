@@ -252,7 +252,7 @@ def r2lline(s):
     elif s == 'begin-sql':
         return ''
     elif s == 'end-sql':
-        return ';'
+        return ''
     elif s.startswith('open '):
         s = s[5:].split(' as ')
         return "{}file_{} := UTL_FILE.FOPEN('{}', {}, 'w');".format(indent,s[1].split(' ')[0],'FILE_DIR',s[0])
@@ -311,7 +311,6 @@ def r2l(s):
         out += r2lwrite(i[idx + 4:])
         while s[k+1].strip() == '':
             k += 1
-
         k += 1
         i = s[k].strip()
         while i.startswith("'") or i.startswith('__num_') or i.startswith('__col_') or i.startswith('__var_'):
