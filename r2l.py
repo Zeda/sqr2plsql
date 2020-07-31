@@ -163,7 +163,7 @@ def r2lvar_rename(s):
     return t
 
 def r2lline(s):
-    global stack
+    global stack, constants
     if s.strip() == '':
         return s
 
@@ -203,10 +203,6 @@ def r2lline(s):
         return sep+"PROCEDURE P_Main IS\nBEGIN"
     elif s == 'end-report':
         return "END P_Main;"
-    elif s in ['begin_setup', 'end_setup']:
-        return ''
-    elif s.startswith('page-size'):
-        return ''
     elif s.startswith('begin-heading'):
         stack += ['P_PrintHeading']
         return sep+"PROCEDURE P_PrintHeading IS\nBEGIN"
@@ -231,6 +227,8 @@ def r2lline(s):
     elif s.startswith('begin-select'):
         stack += [s[6:].upper(),True]
         return ''
+    elif s == 'new-page':
+        s = "P_PrintHeading;"
     elif s.startswith('move '):
         s = s[5:].split(' to ')
         t = s[1].strip().split(' ')
@@ -246,18 +244,33 @@ def r2lline(s):
     elif s.startswith('display '):
         (s, comment) = decomment(s[8:])
         if s.endswith('noline'):
-            return "DBMS_OUTPUT.PUT({});{}".format(s[0:-6].strip(), comment)
+            return "{}DBMS_OUTPUT.PUT({});{}".format(indent, s[0:-6].strip(), comment)
         else:
-            return "DBMS_OUTPUT.PUT_LINE({});{}".format(s, comment)
-    elif s == 'begin-sql':
-        return ''
-    elif s == 'end-sql':
-        return ''
+            return "{}DBMS_OUTPUT.PUT_LINE({});{}".format(indent, s, comment)
     elif s.startswith('open '):
         s = s[5:].split(' as ')
         return "{}file_{} := UTL_FILE.FOPEN('{}', {}, 'w');".format(indent,s[1].split(' ')[0],'FILE_DIR',s[0])
     elif s.startswith('close '):
-        return "UTL_FILE.FCLOSE(file_{});".format(s[6:])
+        return "{}UTL_FILE.FCLOSE(file_{});".format(indent, s[6:])
+    elif s in 'end-sql':
+        return ';'
+
+    elif s in ['commit']:
+        return "{}{};".format(indent, s, ';')
+
+    elif s in ['begin-setup', 'end-setup', 'begin-sql']:
+        return ''
+
+    elif s.startswith('page-size'):
+        s = s[9:].strip().split(' ')
+        constants += [["page height", int(s[0])], ["page width", int(s[1])]]
+        return ''
+
+    elif s.startswith('__num_define'):
+        s = s[12:].strip().replace('\t', ' ').split(' ')
+        constants += [[s[0], s[-1]]]
+        return ''
+
     return indent+s
 
 def low(s):
@@ -356,8 +369,9 @@ def r2l(s):
         i = s[k]
         return out + '{}END IF;\n'.format(indent)
 
-    global stack, selectvars_type
+    global stack, selectvars_type, constants
 
+    constants = []
     stack = []
     selectvars = []
     selectvars_i = []
@@ -379,6 +393,7 @@ def r2l(s):
 
     while k<len(s):
         i = s[k]
+
         while i.strip().startswith('write'):
             out += r2l_write()
 
@@ -526,6 +541,7 @@ def r2l(s):
     s = s.replace('__col_', 'col_')
     s = s.replace('__num_', '')
     s = s.replace('__var_', '')
+    s = s.replace('current-line', '__line_num')
     s = s.replace('\n;', ';')
     s = s.replace(" = ''", ' IS NULL')
     s = s.replace("<> ''", 'IS NOT NULL')
@@ -539,6 +555,8 @@ def r2l(s):
     while '\n\nEND' in s:
         s = s.replace('\n\nEND', '\nEND')
 
+    for i in constants:
+        s = s.replace('{'+i[0]+'}', str(i[1]))
     return s
 
 k = 1
