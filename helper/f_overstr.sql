@@ -28,8 +28,21 @@ set scan off
 CREATE OR REPLACE FUNCTION f_overstr(inp IN VARCHAR2, rep IN VARCHAR2, col IN NUMBER, width IN NUMBER:=NULL, pad IN VARCHAR2:=' ') RETURN VARCHAR2 IS
       str     VARCHAR2(2000);
 BEGIN
-      str := rpad(nvl(rep, pad), nvl(width, length(rep)), pad);
-      RETURN  CASE WHEN col > nvl(length(str), 0)
+        IF width = 0 THEN
+                RETURN inp;
+        END IF;
+
+        IF rep IS NULL THEN
+                IF width IS NULL THEN
+                        RETURN inp;
+                ELSE
+                        str := rpad(pad, width, pad);
+                END IF;
+        ELSE
+                str := rpad(rep, nvl(width, length(rep)), pad);
+        END IF;
+
+        RETURN  CASE WHEN col > nvl(length(inp), 0)
               THEN rpad(nvl(inp, pad), col-1, pad) || str
               ELSE substr(inp, 1, col-1) || str || substr(inp, col + length(str))
               END;
