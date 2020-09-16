@@ -47,11 +47,13 @@ sqrkeywords = [
             'print ',
             'display ',
             'add ',
+            'subtract ',
             'let ',
             'move ',
             'do ',
             'if ',
-            'write ']
+            'write ',
+            'evaluate ']
 
 # We'll save this regex for later :)
 writepad = re.compile(':\\d+$')
@@ -195,9 +197,18 @@ def r2lline(s):
         t = s[1]
         for i in s[2:]:
             t += ' to ' + i
-
         (t, comment) = decomment(t)
         return "{}{} := {} + {};{}".format(indent,t,t,s[0].strip(), comment)
+
+    elif s.startswith('subtract '):
+        #subtract x from y ==> y := y - x
+        (s, comment) = decomment(s)
+        s = s[9:].split(' from ')
+        t = s[1]
+        for i in s[2:]:
+            t += ' from ' + i
+        return "{}{} := {} - {};{}".format(indent,t,t,s[0].strip(), comment)
+
     elif s == 'begin-report':
         stack += ['P_Main']
         return sep+"PROCEDURE P_Main IS\nBEGIN"
@@ -248,8 +259,12 @@ def r2lline(s):
         else:
             return "{}DBMS_OUTPUT.PUT_LINE({});{}".format(indent, s, comment)
     elif s.startswith('open '):
-        s = s[5:].split(' as ')
-        return "{}file_{} := UTL_FILE.FOPEN('{}', {}, 'w');".format(indent,s[1].split(' ')[0],'FILE_DIR',s[0])
+        if ' as ' not in s:
+            return s
+        else:
+            s = s[5:].split(' as ')
+            print(len(s))
+            return "{}file_{} := UTL_FILE.FOPEN('{}', {}, 'w');".format(indent,s[1].split(' ')[0],'FILE_DIR',s[0])
     elif s.startswith('close '):
         return "{}UTL_FILE.FCLOSE(file_{});".format(indent, s[6:])
     elif s in 'end-sql':
@@ -513,6 +528,30 @@ def r2l(s):
     # combine the selectvar variables so that we can sort
 
     vars = sep + 'CREATE OR REPLACE PACKAGE BODY pkz_name IS\n'
+    h = -1
+    w = -1
+    for i in constants:
+        if i[0] == 'page height':
+            h = i[1]
+        elif i[0] == 'page width':
+            w = i[1]
+            break
+    vars += "\t{}\t\t\tNUMBER:={};\n".format("max_lines", h)
+    vars += "\t{}\t\t\tNUMBER:={};\n".format("report_width", w)
+    vars += "\t{}\t\t\tNUMBER:={};\n".format("page_num", 1)
+    vars += "\t{}\t\t\tNUMBER;\n".format("line_num")
+
+
+    vars += """	cr_file				UTL_FILE.FILE_TYPE;
+	current_date_dmy          	VARCHAR2(11);
+	current_time                	VARCHAR2(8);
+	inst_name                    	gubinst.gubinst_name%TYPE;
+	program_name                 	VARCHAR2(15);
+	run_msg                      	VARCHAR2(60);
+	rpt_msg                      	VARCHAR2(50);
+	file_name                     	VARCHAR2(50);
+	report_title			VARCHAR2(100);\n--\n"""
+
     k = 0
     while k<len(selectvars):
         var = selectvars[k]
@@ -529,7 +568,7 @@ def r2l(s):
                 while out[n] in '_.' or '0'<=out[n]<='9' or 'A'<=out[n]<='Z' or 'a'<=out[n]<='z':
                     n -= 1
                 if "    {}    ".format(out[n:i].strip()) not in vars:
-                    vars += "    {}        {}.{}%TYPE;\n".format(out[n:i].strip(), typ.split('_')[0], typ)
+                    vars += "\t{}\t\t\t{}.{}%TYPE;\n".format(out[n:i].strip(), typ.split('_')[0], typ)
                 i = out.find(substr, i + 1)
         k += 1
 
@@ -537,10 +576,44 @@ def r2l(s):
     for i in stack:
         defs += "\tPROCEDURE {};\n".format(i)
 
+    out += """-------------------------------------------------------------------------------
+PROCEDURE P_PrintLine(s VARCHAR2) IS
+BEGIN
+	utl_file.put_line (cr_file, rtrim(s));
+	line_num := line_num + 1;
+	IF line_num >= max_lines THEN
+		P_PrintHeading;
+	END IF;
+END P_PrintLine;
+
+--------------------------------------------------------------------------------
+PROCEDURE P_PrintHead IS
+	page_num_str VARCHAR2(10);
+BEGIN
+-- Insert a page break if we are on a new page
+	IF page_num > 1 THEN
+		utl_file.put (cr_file, chr(12));
+	END IF;
+
+	page_num_str := 'Page ' || page_num;
+	line_num := 0;
+	page_num := page_num + 1;
+
+	P_PrintLine(f_lcr(current_date_dmy, inst_name, page_num_str, report_width));
+	P_PrintLine(f_lcr(current_time, report_title, program_name, report_width));
+	IF run_msg IS NOT NULL or rpt_msg IS NOT NULL THEN
+		P_PrintLine(f_lcr(run_msg, rpt_msg, '', report_width));
+	END IF;
+
+	P_PrintLine('');
+END P_PrintHead;
+"""
     s =comment+head.format(defs)+vars+cursors+out+foot
     s = s.replace('__col_', 'col_')
-    s = s.replace('__num_', '')
-    s = s.replace('__var_', '')
+    # s = s.replace('__num_', '')
+    # s = s.replace('__var_', '')
+    s = s.replace('__num_', 'num_')
+    s = s.replace('__var_', 'var_')
     s = s.replace('current-line', '__line_num')
     s = s.replace('\n;', ';')
     s = s.replace(" = ''", ' IS NULL')
