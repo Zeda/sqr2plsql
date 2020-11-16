@@ -50,7 +50,7 @@ def parse(s, fontsize=10, fontname='Courier', fontform=''):
     form = fontform
     while k < len(s) - 2:
         if s[k:k+6].upper() == 'PRINT ':
-            w = -1
+            w = '-1'
             k += 6
             str = parsearg()
             while s[k] != '(':
@@ -107,7 +107,7 @@ def parse(s, fontsize=10, fontname='Courier', fontform=''):
 
             if s.startswith('center', k):
                 k += 6
-                out += "\npz_ps.text_c(file, {});\n".format(str)
+                out += "\npz_ps.text_c(file, {}, {});\n".format(y, str)
             else:
                 out += "\npz_ps.text(file, {}, {}, {});\n".format(y, x, str)
 
