@@ -1,4 +1,12 @@
+#!/usr/bin/python3
+
 import sys
+
+
+# Other formats
+#   print blah (+1,1,width) fill
+#     ==> print rpad(blah, width, blah) (+1,1)
+#
 
 put = "utl_file.put(my_file, {});\n"
 put_line = "utl_file.put_line(my_file, {});\n"
@@ -301,7 +309,12 @@ def printify(s):
 if len(sys.argv) == 1:
     try:
         import pyperclip
-        pyperclip.copy(printify(pyperclip.paste()))
+        s = pyperclip.paste()
+        print(s)
+        print("\n\n    ====>\n\n")
+        s = printify(s)
+        pyperclip.copy(s)
+        print(s)
     except:
         pass
 

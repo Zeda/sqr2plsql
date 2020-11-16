@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import sys
 
 linevar = 'line'
@@ -5,7 +7,7 @@ printline = "utl_file.put_line(my_file, {});\n"
 
 def isnumform(s):
     for i in s:
-        if i not in "'.0123456789":
+        if i not in "'.0123456789,":
             return False
     return True
 
@@ -144,7 +146,7 @@ def printify(s):
     rows = []
     k = 0
     s = ''
-    row = 1
+    row = 0
     while k<len(src):
         if src[k].startswith('print '):
             (edit, coords, str) = printparse(src[k][6:])
@@ -170,6 +172,12 @@ def printify(s):
     s += printle(rows)
     return s
 
+if len(sys.argv) == 1:
+    try:
+        import pyperclip
+        pyperclip.copy(printify(pyperclip.paste()))
+    except:
+        pass
 
 k = 1
 while k<len(sys.argv):

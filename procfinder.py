@@ -36,9 +36,17 @@ def procify(proc, typ):
         return ''
     else:
         return s + ';\n'
-f = open(sys.argv[1], 'r')
-s = f.read()
-f.close()
+
+
+if len(sys.argv) == 1:
+    try:
+        import pyperclip
+        s = pyperclip.paste()
+    except:
+        f = open(sys.argv[1], 'r')
+        s = f.read()
+        f.close()
+
 
 procs = ''
 proc = []
@@ -72,3 +80,8 @@ for i in s.split('\n'):
             procs += procify(proc, typ)
 
 print(procs)
+try:
+    import pyperclip
+    pyperclip.copy(procs)
+except:
+    pass
