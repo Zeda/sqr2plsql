@@ -102,6 +102,7 @@ go through the PL/SQL code to clean it up.
   * `procfinder.py` is just a tool that locates PL/SQL procedures and generates
     declaration statements. I just find this useful for PL/SQL programming in
     general. It breaks with `function`s though.
+  * `psprint.py` converts PDF graphics commands to PL/SQL command using the [`pz_ps`](helper/pz_ps.sql) package.
 
 # print.py and print2.py
 `print.py` and `print2.py` take an input file of SQR `print` statements and either print the converted version to the console, or writes them out to a file. For example, here is a file with some SQR:
