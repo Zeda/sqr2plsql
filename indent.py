@@ -51,10 +51,10 @@ def indenter(s):
             elif collapsed > 0 and i.lower().endswith(' if;'):
                 collapsed -= 1
             else:
-                print(out)
-                print(stack)
+                # print(out)
+                # print(stack)
                 print("Failed to match 'end {}' (has '{}')".format(i.strip()[4:], stack[-1]))
-                raise SystemExit
+                # raise SystemExit
         elif i.lower().startswith('while '):
             stack += ['loop']
             out += "{}WHILE {}".format(indent*levl+halfindent*half, i[6:])
