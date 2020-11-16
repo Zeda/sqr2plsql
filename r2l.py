@@ -69,6 +69,52 @@ writepad = re.compile(':\\d+$')
 #
 #
 #     return "{}rpad(to_char({}), {})".format(indent,s[0:t.span()[0]])
+def removeproc(s, proc):
+    print("removing " + proc)
+    proc_start = s.find('\nPROCEDURE ' + proc)
+    proc_end = s.find('\nEND ' + proc) + 6 + len(proc)
+    return s[0:proc_start] + s[proc_end:]
+
+def deadprocremoval(s):
+    # gather all of the procedure names
+    all_procedures = []
+    i = 0
+    while i >= 0:
+        i = s.find('\nPROCEDURE P_', i)
+        if i >= 0:
+            i += 11
+            next_parens = s.find('(', i)
+            next_is = s.find(' IS', i)
+            if next_parens < next_is:
+                all_procedures += ['\t' + s[i:next_parens]]
+                i = next_parens
+            else:
+                all_procedures += ['\t' + s[i:next_is]]
+                i = next_is
+
+    # Now check for the appearance of of the procedures
+    all_procedures_swap = []
+    do_loop = True
+    while do_loop:
+        do_loop = False
+        for i in all_procedures:
+            if not i.startswith('\tP_Main'):
+                if i in s:
+                    all_procedures_swap += [i]
+                else:
+                    s = removeproc(s, i[1:])
+                    do_loop = True
+
+        if do_loop:
+            do_loop = False
+            for i in all_procedures_swap:
+                if i in s:
+                    all_procedures += [i]
+                else:
+                    s = removeproc(s, i[1:])
+                    do_loop = True
+    return s
+
 def decomment(s):
     i = s.find('--')
     if i >= 0:
@@ -263,7 +309,6 @@ def r2lline(s):
             return s
         else:
             s = s[5:].split(' as ')
-            print(len(s))
             return "{}file_{} := UTL_FILE.FOPEN('{}', {}, 'w');".format(indent,s[1].split(' ')[0],'FILE_DIR',s[0])
     elif s.startswith('close '):
         return "{}UTL_FILE.FCLOSE(file_{});".format(indent, s[6:])
@@ -579,36 +624,14 @@ def r2l(s):
     out += """-------------------------------------------------------------------------------
 PROCEDURE P_PrintLine(s VARCHAR2) IS
 BEGIN
-	utl_file.put_line (cr_file, rtrim(s));
+	utl_file.put_line (cr_file, rtrim(substr(s, 1, report_width)));
 	line_num := line_num + 1;
 	IF line_num >= max_lines THEN
 		P_PrintHeading;
 	END IF;
 END P_PrintLine;
-
---------------------------------------------------------------------------------
-PROCEDURE P_PrintHead IS
-	page_num_str VARCHAR2(10);
-BEGIN
--- Insert a page break if we are on a new page
-	IF page_num > 1 THEN
-		utl_file.put (cr_file, chr(12));
-	END IF;
-
-	page_num_str := 'Page ' || page_num;
-	line_num := 0;
-	page_num := page_num + 1;
-
-	P_PrintLine(f_lcr(current_date_dmy, inst_name, page_num_str, report_width));
-	P_PrintLine(f_lcr(current_time, report_title, program_name, report_width));
-	IF run_msg IS NOT NULL or rpt_msg IS NOT NULL THEN
-		P_PrintLine(f_lcr(run_msg, rpt_msg, '', report_width));
-	END IF;
-
-	P_PrintLine('');
-END P_PrintHead;
 """
-    s =comment+head.format(defs)+vars+cursors+out+foot
+    s = comment+head.format(defs)+vars+cursors+out+foot
     s = s.replace('__col_', 'col_')
     # s = s.replace('__num_', '')
     # s = s.replace('__var_', '')
@@ -630,7 +653,8 @@ END P_PrintHead;
 
     for i in constants:
         s = s.replace('{'+i[0]+'}', str(i[1]))
-    return s
+
+    return deadprocremoval(s)
 
 k = 1
 while k<len(sys.argv):
