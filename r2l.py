@@ -86,29 +86,39 @@ def deadprocremoval(s):
             next_parens = s.find('(', i)
             next_is = s.find(' IS', i)
             if next_parens < next_is:
-                all_procedures += ['\t' + s[i:next_parens]]
+                all_procedures += [s[i:next_parens]]
                 i = next_parens
             else:
-                all_procedures += ['\t' + s[i:next_is]]
+                all_procedures += [s[i:next_is]]
                 i = next_is
 
     # Now check for the appearance of of the procedures
+    l = s.split('\n')
     all_procedures_swap = []
     do_loop = True
     while do_loop:
         do_loop = False
         for i in all_procedures:
-            if not i.startswith('\tP_Main'):
-                if i in s:
+            if i != 'P_Main':
+                found = False
+                for j in l:
+                    if j.strip().startswith(i) and j.strip()[len(i)].lower() not in 'abcdefghijklmnopqrstuvwxyz_':
+                        found = True
+                        break
+                if found:
                     all_procedures_swap += [i]
                 else:
-                    s = removeproc(s, i[1:])
+                    s = removeproc(s, i)
                     do_loop = True
-
         if do_loop:
             do_loop = False
             for i in all_procedures_swap:
-                if i in s:
+                found = False
+                for j in l:
+                    if j.strip().startswith(i) and j.strip()[len(i)].lower() not in 'abcdefghijklmnopqrstuvwxyz_':
+                        found = True
+                        break
+                if found:
                     all_procedures += [i]
                 else:
                     s = removeproc(s, i[1:])
@@ -598,7 +608,7 @@ def r2l(s):
 	report_title			VARCHAR2(100);\n--\n"""
 
     k = 0
-    while k<len(selectvars):
+    while k < len(selectvars):
         var = selectvars[k]
         typ = selectvars_type[k]
         if '__' + var in out:
